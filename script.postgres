@@ -31,3 +31,244 @@ CREATE TABLE IF NOT EXISTS opt_orders (
     CONSTRAINT fk_opt_orders_product
         FOREIGN KEY (product_id) REFERENCES opt_products(product_id)
 );
+
+
+EXPLAIN ANALYSE
+SELECT (
+    SELECT CONCAT(product_category, ': ', cnt)
+    FROM (
+        SELECT product_category, COUNT(*) AS cnt
+        FROM (
+            SELECT
+                oo.order_id,
+                oo.order_date,
+                op.product_id,
+                op.product_name,
+                op.product_category,
+                oc.id AS client_id
+
+            FROM opt_orders AS oo
+            JOIN opt_clients as oc ON oo.client_id = oc.id
+            JOIN opt_products as op ON oo.product_id = op.product_id
+            WHERE oc.status = 'active' AND oo.order_date > DATE '2024-08-18'
+        ) AS sub1
+
+        GROUP BY product_category
+    )AS sub2
+    WHERE cnt = (
+        SeLECT MIN(cnt)
+        FROM (
+            SELECT COUNT(*) AS cnt
+            FROM (
+                SELECT
+                    oo.order_id,
+                    oo.order_date,
+                    op.product_id,
+                    op.product_name,
+                    op.product_category,
+                    oc.id AS client_id
+
+                FROM opt_orders AS oo
+                JOIN opt_clients as oc ON oo.client_id = oc.id
+                JOIN opt_products as op ON oo.product_id = op.product_id
+                WHERE oc.status = 'active'AND oo.order_date > DATE '2024-08-18'
+            ) AS sub3
+            GROUP BY product_category
+        ) AS sub4
+    )
+    LIMIT 2
+) AS min_cnt,
+
+(
+    SELECT CONCAT(product_category, ': ', cnt)
+    FROM (
+        SELECT product_category, COUNT(*) AS cnt
+        FROM (
+            SELECT
+                oo.order_id,
+                oo.order_date,
+                op.product_id,
+                op.product_name,
+                op.product_category,
+                oc.id AS client_id
+
+            FROM opt_orders AS oo
+            JOIN opt_clients as oc ON oo.client_id = oc.id
+            JOIN opt_products as op ON oo.product_id = op.product_id
+            WHERE  oc.status = 'active' AND oo.order_date > DATE '2024-08-18'
+        ) AS sub1
+        GROUP BY product_category
+    )AS sub2
+    WHERE cnt = (
+        SeLECT MAX(cnt)
+        FROM (
+            SELECT COUNT(*) AS cnt
+            FROM (
+                SELECT
+                    oo.order_id,
+                    oo.order_date,
+                    op.product_id,
+                    op.product_name,
+                    op.product_category,
+                    oc.id AS client_id
+
+                FROM opt_orders AS oo
+                JOIN opt_clients as oc ON oo.client_id = oc.id
+                JOIN opt_products as op ON oo.product_id = op.product_id
+                WHERE oc.status = 'active' AND oo.order_date > DATE '2024-08-18'
+            ) AS sub3
+            GROUP BY product_category
+        ) AS sub4
+    )
+    LIMIT 2
+) AS max_cnt;
+
+
+
+
+
+
+
+
+-- EXAMPLE OF PEOPLE
+EXPLAIN ANALYSE
+SELECT (
+    SELECT CONCAT(name, ': ', cnt)
+    FROM (
+        SELECT name, COUNT(*) AS cnt
+        FROM (
+            SELECT
+                oc.id AS client_id,
+                oc.name ,
+                oc.email,
+                oo.order_id,
+                oo.order_date,
+                op.product_id,
+                op.product_name
+            FROM opt_orders AS oo
+            JOIN opt_clients as oc ON oo.client_id = oc.id
+            JOIN opt_products as op ON oo.product_id = op.product_id
+            WHERE oc.email like '%@example.com' and  oc.status = 'active' AND oo.order_date > DATE '2024-08-18'
+        ) AS sub1
+
+        GROUP BY name , product_name
+    )AS sub2
+    WHERE cnt = (
+        SELECT MIN(cnt)
+        FROM (
+            SELECT COUNT(*) AS cnt
+            FROM (
+                SELECT
+                    oc.id AS client_id,
+                    oc.name ,
+                    oc.email,
+                    oo.order_id,
+                    oo.order_date,
+                    op.product_id,
+                    op.product_name
+
+                FROM opt_orders AS oo
+                JOIN opt_clients as oc ON oo.client_id = oc.id
+                JOIN opt_products as op ON oo.product_id = op.product_id
+                WHERE oc.email like '%@example.com' and oc.status = 'active'AND oo.order_date > DATE '2024-08-18'
+            ) AS sub3
+            GROUP BY name, product_name
+        ) AS sub4
+    )
+    LIMIT 1
+) AS min_cnt,
+
+(
+    SELECT CONCAT(name, ': ', cnt)
+    FROM (
+        SELECT name, COUNT(*) AS cnt
+        FROM (
+            SELECT
+                oc.id AS client_id,
+                oc.name ,
+                oc.email,
+                oo.order_id,
+                oo.order_date,
+                op.product_id,
+                op.product_name
+
+            FROM opt_orders AS oo
+            JOIN opt_clients as oc ON oo.client_id = oc.id
+            JOIN opt_products as op ON oo.product_id = op.product_id
+            WHERE  oc.email like '%@example.com' and oc.status = 'active' AND oo.order_date > DATE '2024-08-18'
+        ) AS sub1
+        GROUP BY name, product_name
+    )AS sub2
+    WHERE cnt = (
+        SeLECT MAX(cnt)
+        FROM (
+            SELECT COUNT(*) AS cnt
+            FROM (
+                SELECT
+                    oc.id AS client_id,
+                    oc.name ,
+                    oc.email,
+                    oo.order_id,
+                    oo.order_date,
+                    op.product_id,
+                    op.product_name
+
+                FROM opt_orders AS oo
+                JOIN opt_clients as oc ON oo.client_id = oc.id
+                JOIN opt_products as op ON oo.product_id = op.product_id
+                WHERE oc.email like '%@example.com' and  oc.status = 'active' AND oo.order_date > DATE '2024-08-18'
+            ) AS sub3
+            GROUP BY name, product_name
+        ) AS sub4
+    )
+    LIMIT 1
+) AS max_cnt,
+
+(
+    SELECT CONCAT(name, ': ', cnt)
+    FROM (
+        SELECT name, COUNT(*) AS cnt
+        FROM (
+            SELECT
+                oc.id AS client_id,
+                oc.name ,
+                oc.email,
+                oo.order_id,
+                oo.order_date,
+                op.product_id,
+                op.product_name
+
+            FROM opt_orders AS oo
+            JOIN opt_clients as oc ON oo.client_id = oc.id
+            JOIN opt_products as op ON oo.product_id = op.product_id
+            WHERE  oc.email like '%@example.com'
+        ) AS sub5
+        GROUP BY name, product_name
+    )AS sub6
+    WHERE cnt = (
+        SeLECT ROUND(AVG(cnt))
+        FROM (
+            SELECT COUNT(*) AS cnt
+            FROM (
+                SELECT
+                    oc.id AS client_id,
+                    oc.name ,
+                    oc.email,
+                    oo.order_id,
+                    oo.order_date,
+                    op.product_id,
+                    op.product_name
+
+                FROM opt_orders AS oo
+                JOIN opt_clients as oc ON oo.client_id = oc.id
+                JOIN opt_products as op ON oo.product_id = op.product_id
+                WHERE oc.email like '%@example.com'
+            ) AS sub7
+            GROUP BY name, product_name
+        ) AS sub8
+    )
+    LIMIT 1
+) AS avg_cnt;
+
+
+
