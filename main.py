@@ -16,7 +16,7 @@ PORT = '5432' # put your credentials here
 
 # Data volume settings
 CLIENTS_COUNT = 100_000
-PRODUCTS_COUNT = 1_000
+PRODUCTS_COUNT = 10_000
 ORDERS_COUNT = 1_000_000
 CHUNK_SIZE = 10_000
 

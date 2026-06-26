@@ -36,15 +36,14 @@ CREATE TABLE IF NOT EXISTS opt_orders (
     -------------------------------------------------------------
 
 
--- EXAMPLE OF PEOPLE
 
 
 
-
--- EXAMPLE OF PEOPLE
+-- EXAMPLE OF PEOPLE НЕ ОПТИМІЗОВАНА КВЕРЯ
 EXPLAIN ANALYSE
 SELECT (
     SELECT CONCAT(name, ': ', cnt)
+
     FROM (
         SELECT name,
                product_name,
@@ -164,8 +163,6 @@ LIMIT 1
 
 
 --  ОПТИМІЗОВАНИЙ
-
-
 CREATE INDEX IF NOT EXISTS idx_opt_clients_email
 ON opt_clients(email);
 
@@ -182,7 +179,7 @@ CREATE INDEX IF NOT EXISTS idx_opt_orders_product_id
 ON opt_orders(product_id);
 
 
-
+---- 1 етап оптимізації ----
 EXPLAIN ANALYSE
 WITH filtered_customer_product AS (
     SELECT
@@ -226,33 +223,91 @@ SELECT
 ) AS avg_cnt
 FROM  stats;
 
+---------------------------------------------
+---- 2 етап оптимізації ----
+
+EXPLAIN ANALYSE
+WITH filtered_customer_product AS (
+    SELECT
+        oc.name,
+        op.product_name
+        --COUNT(*) AS cnt
+    FROM opt_orders AS oo
+    JOIN opt_clients AS oc ON oo.client_id = oc.id
+    JOIN opt_products AS op ON oo.product_id = op.product_id
+    WHERE oc.email like '%@example.com' AND  oc.status = 'active'
+      AND oo.order_date > DATE '2024-08-18'
+),
+cnt_product AS (
+    SELECT
+        name,
+        product_name,
+        count(*) AS cnt
+    FROM filtered_customer_product
+    GROUP BY name, product_name
+),
+stats AS (
+    SELECT
+        name,
+        product_name,
+        cnt,
+        row_number() over (ORDER BY cnt ASC, name aSC) as rn_min,
+        row_number() over (ORDER BY cnt deSC, name aSC) as rn_max,
+        ROUND(AVG(cnt) over()) AS avg_cn
+    FROM cnt_product
+)
+SELECT
+    (SELECT concat(name, ': ', cnt) FROM stats WHERE rn_min = 1) AS min_cnt,
+    (SELECT concat(name, ': ', cnt) FROM stats WHERE rn_max = 1) AS max_cnt,
+    (SELECT concat(name, ': ', avg_cn) FROM stats Order by name asc LIMIT 1) AS avg_cnt;
+
+
+---------------------------------------------
+---- 3 етап оптимізації ----
+
+EXPLAIN ANALYSE
+WITH stats AS (
+    SELECT
+        oc.name,
+        op.product_name,
+        COUNT(*) AS cnt,
+        row_number() over (ORDER BY COUNT(*) ASC, name aSC) as rn_min,
+        row_number() over (ORDER BY COUNT(*) deSC, name aSC) as rn_max,
+        ROUND(AVG(COUNT(*)) over()) AS avg_cn
+    FROM opt_orders AS oo
+    JOIN opt_clients AS oc ON oo.client_id = oc.id
+    JOIN opt_products AS op ON oo.product_id = op.product_id
+    WHERE oc.email like '%@example.com' AND  oc.status = 'active'
+      AND oo.order_date > DATE '2024-08-18'
+    GROUP BY name, product_name
+)
+SELECT
+    (SELECT concat(name, ': ', cnt) FROM stats WHERE rn_min = 1) AS min_cnt,
+    (SELECT concat(name, ': ', cnt) FROM stats WHERE rn_max = 1) AS max_cnt,
+    (SELECT concat(name, ': ', avg_cn) FROM stats Order by name asc LIMIT 1) AS avg_cnt;
 
 
 
+---------------------------------------------
+---- 4 етап оптимізації ----
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+EXPLAIN ANALYSE
+WITH stats AS (
+    SELECT
+        oc.name,
+        op.product_name,
+        COUNT(*) AS cnt
+    FROM opt_orders AS oo
+    JOIN opt_clients AS oc ON oo.client_id = oc.id
+    JOIN opt_products AS op ON oo.product_id = op.product_id
+    WHERE oc.email like '%@example.com' AND  oc.status = 'active'
+      AND oo.order_date > DATE '2024-08-18'
+    GROUP BY name, product_name
+)
+SELECT
+    (SELECT concat(name, ': ', cnt) FROM stats ORDER BY cnt ASC, name ASC LIMIT  1) AS min_cnt,
+    (SELECT concat(name, ': ', cnt) FROM stats ORDER BY cnt ASC, name ASC LIMIT  1) AS max_cnt,
+    (SELECT concat(name, ': ', ROUND(AVG(cnt) OVER()) ) FROM stats Order by name asc LIMIT 1) AS avg_cnt;
 
 
 
