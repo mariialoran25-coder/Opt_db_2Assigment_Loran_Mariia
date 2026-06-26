@@ -35,7 +35,9 @@ CREATE TABLE IF NOT EXISTS opt_orders (
     -------------------------------------------------------------
     -------------------------------------------------------------
 
-
+BEGIN ;
+set local enable_hashjoin = off; -- Коли я з'єднувала великі таблиці Join то Postgres сам обирає алгоритм як це зробити швидко. А вот Хеш джоін це і є 1 із алгоритмів
+-- ще тут можна спробувати enable_seqscan, в Postgres муситиме використовувати Index Scan
 
 
 
@@ -289,7 +291,7 @@ SELECT
 
 
 ---------------------------------------------
----- 4 етап оптимізації ----
+---- 4 етап оптимізації FINAL  ----
 
 EXPLAIN ANALYSE
 WITH stats AS (
@@ -306,9 +308,9 @@ WITH stats AS (
 )
 SELECT
     (SELECT concat(name, ': ', cnt) FROM stats ORDER BY cnt ASC, name ASC LIMIT  1) AS min_cnt,
-    (SELECT concat(name, ': ', cnt) FROM stats ORDER BY cnt ASC, name ASC LIMIT  1) AS max_cnt,
+    (SELECT concat(name, ': ', cnt) FROM stats ORDER BY cnt DESC, name ASC LIMIT  1) AS max_cnt,
     (SELECT concat(name, ': ', ROUND(AVG(cnt) OVER()) ) FROM stats Order by name asc LIMIT 1) AS avg_cnt;
 
-
+ROLLBACK ;
 
 
